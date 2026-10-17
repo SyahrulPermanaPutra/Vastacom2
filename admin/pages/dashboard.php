@@ -1,289 +1,117 @@
 <?php
-require_once __DIR__ . '/../../config/config.php';
+// Dashboard panel (Figma: 07). Admin melihat ringkasan seluruh toko, teknisi hanya tugasnya sendiri.
+$isAdmin = $me['role'] === 'admin';
+$scope   = $isAdmin ? '' : ' WHERE s.id_teknisi = ' . (int)$me['id'];
 
-// Halaman ini harus dibuka lewat router admin (agar header/CSS ikut dimuat)
-if (realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
-    header("Location: " . BASE_URL . "/admin/index.php?page=dashboard");
-    exit;
+$statusCount = array_fill_keys(array_keys(STATUS_SERVICE), 0);
+foreach (db_all($conn, "SELECT s.status, COUNT(*) n FROM service s" . $scope . " GROUP BY s.status") as $r) {
+    $statusCount[$r['status']] = (int)$r['n'];
 }
-$query = "SELECT * FROM produk p where p.status = '1'";
-$result = mysqli_query($conn, $query);
+$totalService = array_sum($statusCount);
 
-//mengambil data SERVICE untuk total section
-$query_service = "SELECT COUNT(*) as total_service FROM service";
-$result_service = mysqli_query($conn, $query_service);
-$data_service = mysqli_fetch_assoc($result_service);
-$total_service = $data_service['total_service'];
+if ($isAdmin) {
+    $pendapatan = db_one($conn, "SELECT COALESCE(SUM(total_biaya), 0) n FROM invoice WHERE status_pembayaran = 'lunas'
+                                 AND DATE_FORMAT(COALESCE(tanggal_pembayaran, tanggal_invoice), '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')")['n'];
+    $stats = [
+        ['Total Service', $totalService, 'wrench', 'bg-primary'],
+        ['Pelanggan', db_one($conn, "SELECT COUNT(*) n FROM pelanggan")['n'], 'users', 'bg-success'],
+        ['Invoice Pending', db_one($conn, "SELECT COUNT(*) n FROM invoice WHERE status_pembayaran = 'pending'")['n'], 'receipt', 'bg-warning'],
+        ['Pendapatan Bulan Ini', rp($pendapatan), 'wallet', 'bg-info'],
+    ];
+    $invoices = db_all($conn, "SELECT i.*, p.nama AS nama_pelanggan FROM invoice i JOIN service s ON i.service_id = s.id
+                               JOIN pelanggan p ON s.id_pelanggan = p.id ORDER BY i.tanggal_invoice DESC LIMIT 5");
+} else {
+    $stats = [
+        ['Tugas Saya', $totalService, 'wrench', 'bg-primary'],
+        ['Menunggu', $statusCount['menunggu'], 'clock', 'bg-warning'],
+        ['Diproses', $statusCount['diproses'], 'cpu', 'bg-info'],
+        ['Selesai', $statusCount['selesai'], 'check', 'bg-success'],
+    ];
+}
+$recent = db_all($conn, SERVICE_SELECT . $scope . " ORDER BY s.tanggal_masuk DESC LIMIT 5");
 
-//mengambil data PRODUK untuk stats section
-$query_produk = "SELECT COUNT(*) as total_produk FROM produk WHERE status = '1'";
-$result_produk = mysqli_query($conn, $query_produk);
-$data_produk = mysqli_fetch_assoc($result_produk);
-$total_produk = $data_produk['total_produk'];
-
-//mengambil data PELANGGAN untuk stats section
-$query_cust = "SELECT COUNT(*) as total_cust FROM pelanggan";
-$result_cust = mysqli_query($conn, $query_cust);
-$data_cust = mysqli_fetch_assoc($result_cust);
-$total_cust = $data_cust['total_cust'];
-
-error_reporting (E_ALL ^ E_NOTICE);
-ini_set('display_errors', 1);
-
+// Donut chart status service (SVG, tanpa library)
+$colors = ['selesai' => '#198754', 'diproses' => '#0dcaf0', 'menunggu' => '#ffc107', 'dibatalkan' => '#dc3545'];
+$C = 2 * M_PI * 70;
+$donut = '<svg width="200" height="200" viewBox="0 0 220 220" role="img" aria-label="Statistik status service"><g transform="rotate(-90 110 110)">'
+       . '<circle cx="110" cy="110" r="70" fill="none" stroke="#e2e8f0" stroke-width="34"/>';
+$offset = 0;
+$legend = '';
+foreach ($colors as $status => $color) {
+    $pct = $totalService ? $statusCount[$status] / $totalService : 0;
+    if ($pct > 0) {
+        $len = $C * $pct;
+        $donut .= '<circle cx="110" cy="110" r="70" fill="none" stroke="' . $color . '" stroke-width="34" stroke-dasharray="' . round($len, 2) . ' ' . round($C - $len, 2) . '" stroke-dashoffset="' . round(-$offset, 2) . '"/>';
+        $offset += $len;
+    }
+    $legend .= '<div class="legend"><div class="legend-dot" style="background:' . $color . '"></div><span class="grow">' . STATUS_SERVICE[$status][0]
+             . '</span><span class="semibold">' . $statusCount[$status] . ' · ' . round($pct * 100) . '%</span></div>';
+}
+$donut .= '</g><text x="110" y="108" text-anchor="middle" font-family="Inter, sans-serif" font-size="30" font-weight="800" fill="#212529">' . $totalService . '</text>'
+        . '<text x="110" y="130" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#64748b">Total Service</text></svg>';
 ?>
+<?= page_head('Dashboard', 'Selamat datang di halaman dashboard <b>' . e($me['username']) . '</b> (' . ROLE_LABEL[$me['role']] . ')') ?>
+<?= render_flash() ?>
 
-<section id="dashboard" class="dashboard">
-    <div class="container">
-        <h1>Dashboard</h1>
-        <p>Selamat datang di halaman dashboard <strong><?= $_SESSION['username'] ?></strong></p>
+<div class="row gap-20 stack">
+  <?php foreach ($stats as [$label, $value, $icon, $bg]): ?>
+  <div class="stat-card <?= $bg ?>">
+    <div class="row between items-center"><div class="stat-label"><?= $label ?></div><div class="stat-icon"><?= ic($icon, 'icon icon-lg') ?></div></div>
+    <div class="stat-value"><?= e($value) ?></div>
+  </div>
+  <?php endforeach; ?>
+</div>
+
+<div class="row gap-20 items-start stack">
+  <div class="card grow" style="min-width:0">
+    <div class="card-header"><h2 class="h4"><?= $isAdmin ? 'Service Terbaru' : 'Tugas Terbaru' ?></h2>
+      <a class="btn btn-outline-primary btn-sm" href="<?= e(url('admin/index.php?page=service')) ?>">Lihat Semua</a></div>
+    <?php if (!$recent): ?>
+      <div class="empty"><?= ic('wrench', 'icon icon-xl') ?>Belum ada service.</div>
+    <?php else: ?>
+    <div class="table">
+      <div class="tr thead"><div class="th" style="width:110px">ID</div><div class="th" style="width:170px">Pelanggan</div><div class="th" style="flex:1">Jenis Kerusakan</div><div class="th" style="width:140px">Status</div></div>
+      <?php foreach ($recent as $s): ?>
+      <a class="tr" href="<?= e(url('admin/index.php?page=service&view=' . (int)$s['id'])) ?>">
+        <div class="td semibold" style="width:110px">#SVC-<?= (int)$s['id'] ?></div>
+        <div class="td" style="width:170px"><?= e($s['nama_pelanggan']) ?></div>
+        <div class="td" style="flex:1"><?= e($s['jenis_kerusakan']) ?></div>
+        <div class="td" style="width:140px"><?= badge_service($s['status']) ?></div>
+      </a>
+      <?php endforeach; ?>
     </div>
-</section>
-    
-    <div class="container">
-        <div class="row">
-            <!-- Main Content -->
-            <div class="col-md-12 p-4">
+    <?php endif; ?>
+  </div>
+  <div class="card" style="width:460px">
+    <div class="card-header"><h2 class="h4">Statistik Service</h2></div>
+    <div class="card-body" style="flex-direction:row;align-items:center;gap:24px"><?= $donut ?><div class="col gap-12 grow"><?= $legend ?></div></div>
+  </div>
+</div>
 
-                <div class="tab-content">
-                    <!-- Dashboard Tab -->
-                    <div class="tab-pane fade show active" id="dashboard">
-                        <!-- Stat Cards -->
-                        <div class="row mb-4">
-                            <div class="col-md-3 mb-3">
-                                <div class="card stat-card bg-primary text-white">
-                                    <div class="card-body text-center">
-                                        <i class="bi bi-tools card-icon"></i>
-                                        <h5 class="card-title">Total Service</h5>
-                                        <h2 class="card-text"><?= $total_service ?>+</h2>
-                                        <!-- <a href="#services" class="text-white stretched-link" data-bs-toggle="tab"></a> -->
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="card stat-card bg-success text-white">
-                                    <div class="card-body text-center">
-                                        <i class="bi bi-people card-icon"></i>
-                                        <h5 class="card-title">Pelanggan</h5>
-                                        <h2 class="card-text"><?= $total_produk ?>+</h2>
-                                        <a href="#customers" class="text-white stretched-link" data-bs-toggle="tab"></a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="card stat-card bg-warning text-dark">
-                                    <div class="card-body text-center">
-                                        <i class="bi bi-receipt card-icon"></i>
-                                        <h5 class="card-title">Invoice Pending</h5>
-                                        <h2 class="card-text">8</h2>
-                                        <a href="#invoices" class="text-dark stretched-link" data-bs-toggle="tab"></a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="card stat-card bg-info text-white">
-                                    <div class="card-body text-center">
-                                        <i class="bi bi-cash-coin card-icon"></i>
-                                        <h5 class="card-title">Pendapatan Bulan Ini</h5>
-                                        <h2 class="card-text">Rp12.450.000</h2>
-                                        <a href="#reports" class="text-white stretched-link" data-bs-toggle="tab"></a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Recent Services and Status Chart -->
-                        <div class="row">
-                            <div class="col-md-6 mb-4">
-                                <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h5 class="mb-0">Service Terbaru</h5>
-                                        <a href="#services" class="btn btn-sm btn-outline-primary" data-bs-toggle="tab">Lihat Semua</a>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="table-responsive">
-                                            <table class="table table-hover">
-                                                <thead>
-                                                    <tr>
-                                                        <th>ID</th>
-                                                        <th>Pelanggan</th>
-                                                        <th>Jenis Kerusakan</th>
-                                                        <th>Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr>
-                                                        <td>#SVC-125</td>
-                                                        <td>Budi Santoso</td>
-                                                        <td>Laptop Tidak Nyala</td>
-                                                        <td><span class="badge bg-warning text-dark">Diproses</span></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>#SVC-124</td>
-                                                        <td>Ani Wijaya</td>
-                                                        <td>Ganti Layar HP</td>
-                                                        <td><span class="badge bg-success">Selesai</span></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>#SVC-123</td>
-                                                        <td>Rudi Hartono</td>
-                                                        <td>Instalasi Software</td>
-                                                        <td><span class="badge bg-secondary">Menunggu</span></td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>#SVC-122</td>
-                                                        <td>Siti Rahayu</td>
-                                                        <td>Printer Error</td>
-                                                        <td><span class="badge bg-danger">Dibatalkan</span></td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6 mb-4">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="mb-0">Statistik Service</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <canvas id="serviceStatusChart" height="250"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Recent Invoices -->
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h5 class="mb-0">Invoice Terbaru</h5>
-                                        <a href="#invoices" class="btn btn-sm btn-outline-primary" data-bs-toggle="tab">Lihat Semua</a>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="table-responsive">
-                                            <table class="table table-hover">
-                                                <thead>
-                                                    <tr>
-                                                        <th>No. Invoice</th>
-                                                        <th>Service ID</th>
-                                                        <th>Pelanggan</th>
-                                                        <th>Total Biaya</th>
-                                                        <th>Status</th>
-                                                        <th>Aksi</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr>
-                                                        <td>#INV-2023-125</td>
-                                                        <td>#SVC-120</td>
-                                                        <td>Dewi Lestari</td>
-                                                        <td>Rp1.250.000</td>
-                                                        <td><span class="badge bg-success">Lunas</span></td>
-                                                        <td>
-                                                            <button class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></button>
-                                                            <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer"></i></button>
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>#INV-2023-124</td>
-                                                        <td>#SVC-118</td>
-                                                        <td>Fajar Setiawan</td>
-                                                        <td>Rp750.000</td>
-                                                        <td><span class="badge bg-warning text-dark">Pending</span></td>
-                                                        <td>
-                                                            <button class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></button>
-                                                            <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer"></i></button>
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>#INV-2023-123</td>
-                                                        <td>#SVC-115</td>
-                                                        <td>Hendra Kurniawan</td>
-                                                        <td>Rp2.100.000</td>
-                                                        <td><span class="badge bg-danger">Batal</span></td>
-                                                        <td>
-                                                            <button class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></button>
-                                                            <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer"></i></button>
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Other tabs would go here -->
-                    <div class="tab-pane fade" id="services">...</div>
-                    <div class="tab-pane fade" id="customers">...</div>
-                    <div class="tab-pane fade" id="technicians">...</div>
-                    <div class="tab-pane fade" id="invoices">...</div>
-                    <div class="tab-pane fade" id="products">...</div>
-                    <div class="tab-pane fade" id="categories">...</div>
-                    <div class="tab-pane fade" id="reports">...</div>
-                    <div class="tab-pane fade" id="settings">...</div>
-                </div>
-            </div>
-        </div>
+<?php if ($isAdmin): ?>
+<div class="card">
+  <div class="card-header"><h2 class="h4">Invoice Terbaru</h2>
+    <a class="btn btn-outline-primary btn-sm" href="<?= e(url('admin/index.php?page=invoice')) ?>">Lihat Semua</a></div>
+  <?php if (!$invoices): ?>
+    <div class="empty"><?= ic('receipt', 'icon icon-xl') ?>Belum ada invoice.</div>
+  <?php else: ?>
+  <div class="table-wrap"><div class="table">
+    <div class="tr thead"><div class="th" style="width:170px">No. Invoice</div><div class="th" style="width:140px">Service ID</div><div class="th" style="flex:1">Pelanggan</div>
+      <div class="th" style="width:180px">Total Biaya</div><div class="th" style="width:140px">Status</div><div class="th" style="width:120px">Aksi</div></div>
+    <?php foreach ($invoices as $inv): ?>
+    <div class="tr">
+      <div class="td semibold" style="width:170px">INV-<?= (int)$inv['id'] ?></div>
+      <div class="td" style="width:140px">#SVC-<?= (int)$inv['service_id'] ?></div>
+      <div class="td" style="flex:1"><?= e($inv['nama_pelanggan']) ?></div>
+      <div class="td" style="width:180px"><?= rp($inv['total_biaya']) ?></div>
+      <div class="td" style="width:140px"><?= badge_bayar($inv['status_pembayaran']) ?></div>
+      <div class="td" style="width:120px">
+        <a class="btn btn-outline-primary btn-sm btn-icon" title="Lihat detail service" href="<?= e(url('admin/index.php?page=service&view=' . (int)$inv['service_id'])) ?>"><?= ic('eye', 'icon icon-sm') ?></a>
+        <a class="btn btn-outline-secondary btn-sm btn-icon" title="Cetak invoice" target="_blank" href="<?= e(url('admin/index.php?page=invoice_cetak&id=' . (int)$inv['id'])) ?>"><?= ic('printer', 'icon icon-sm') ?></a>
+      </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // Service Status Chart
-        const ctx = document.getElementById('serviceStatusChart').getContext('2d');
-        const serviceStatusChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Menunggu', 'Diproses', 'Selesai', 'Dibatalkan'],
-                datasets: [{
-                    data: [15, 8, 95, 6],
-                    backgroundColor: [
-                        '#6c757d',
-                        '#ffc107',
-                        '#198754',
-                        '#dc3545'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                    }
-                }
-            }
-        });
-    </script>
-
-
-<style>
-        .sidebar {
-            min-height: 100vh;
-            background-color: #343a40;
-        }
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.75);
-        }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
-            color: white;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .card-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-        .stat-card {
-            transition: transform 0.3s;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-    </style>
+    <?php endforeach; ?>
+  </div></div>
+  <?php endif; ?>
+</div>
+<?php endif; ?>

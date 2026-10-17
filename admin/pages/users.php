@@ -1,153 +1,98 @@
 <?php
-require_once __DIR__ . '/../../config/config.php';
+// Data User (Figma: 12 & 13). Akun pelanggan lengkap dikelola dari menu Pelanggan.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action   = $_POST['action'] ?? '';
+    $id       = (int)($_POST['id'] ?? 0);
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $role     = $_POST['role'] ?? '';
 
-// tampilkan data users
-$result = $conn->query("SELECT * FROM users");
-
-// tambah user
-if (isset($_POST['tambah'])) {
-    $username = $_POST['username'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-    $role = $_POST['role'];
-
-    // Validasi role
-    $allowed_roles = ['admin', 'teknisi', 'pelanggan'];
-    if (!in_array($role, $allowed_roles)) {
-        echo "<script>alert('Role tidak valid!');</script>";
-        exit;
+    if ($action === 'hapus') {
+        if ($id === (int)$me['id']) {
+            flash('danger', 'Anda tidak dapat menghapus akun Anda sendiri.');
+        } else {
+            try {
+                $conn->begin_transaction();
+                db_exec($conn, "DELETE FROM pelanggan WHERE user_id = ? AND NOT EXISTS (SELECT 1 FROM service WHERE service.id_pelanggan = pelanggan.id)", 'i', $id);
+                db_exec($conn, "DELETE FROM users WHERE id = ?", 'i', $id);
+                $conn->commit();
+                flash('success', 'User berhasil <b>dihapus</b>.');
+            } catch (mysqli_sql_exception $e) {
+                $conn->rollback();
+                flash('danger', 'User tidak dapat dihapus karena masih memiliki data service atau invoice terkait.');
+            }
+        }
+        redirect('admin/index.php?page=users');
     }
 
-    // Cek apakah username sudah ada
-    $checkUser = $conn->query("SELECT * FROM users WHERE username='$username'");
-    if ($checkUser->num_rows > 0) {
-        echo "<script>alert('Username sudah ada!');</script>";
-    } else {
-        $conn->query("INSERT INTO users (username, password, role) VALUES ('$username', '$password', '$role')");
-        echo "<script>alert('User berhasil ditambahkan!'); window.location.href='?page=users';</script>";
+    $error = null;
+    if ($username === '' || !isset(ROLE_LABEL[$role])) $error = 'Username dan role wajib diisi.';
+    elseif (db_one($conn, "SELECT id FROM users WHERE username = ? AND id <> ?", 'si', $username, $id)) $error = 'Username sudah digunakan.';
+    elseif (($action === 'tambah' || $password !== '') && strlen($password) < 6) $error = 'Password minimal 6 karakter.';
+    elseif ($action === 'edit' && $id === (int)$me['id'] && $role !== 'admin') $error = 'Anda tidak dapat menurunkan role akun Anda sendiri.';
+
+    if ($error) {
+        flash('danger', $error);
+    } elseif ($action === 'tambah') {
+        $conn->begin_transaction();
+        db_exec($conn, "INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 'sss', $username, password_hash($password, PASSWORD_DEFAULT), $role);
+        if ($role === 'pelanggan') {
+            db_exec($conn, "INSERT INTO pelanggan (user_id, nama) VALUES (?, ?)", 'is', $conn->insert_id, $username);
+        }
+        $conn->commit();
+        flash('success', 'User <b>' . e($username) . '</b> berhasil ditambahkan.');
+    } elseif ($action === 'edit') {
+        db_exec($conn, "UPDATE users SET username = ?, role = ? WHERE id = ?", 'ssi', $username, $role, $id);
+        if ($password !== '') {
+            db_exec($conn, "UPDATE users SET password = ? WHERE id = ?", 'si', password_hash($password, PASSWORD_DEFAULT), $id);
+        }
+        if ($role === 'pelanggan' && !db_one($conn, "SELECT id FROM pelanggan WHERE user_id = ?", 'i', $id)) {
+            db_exec($conn, "INSERT INTO pelanggan (user_id, nama) VALUES (?, ?)", 'is', $id, $username);
+        }
+        flash('success', 'User <b>' . e($username) . '</b> berhasil diperbarui.');
     }
+    redirect('admin/index.php?page=users');
 }
 
-// hapus user
-if (isset($_GET['delete'])) {
-    $id = $_GET['delete'];
-    $conn->query("DELETE FROM users WHERE id='$id'");
-    echo "<script>alert('User berhasil dihapus!'); window.location.href='?page=users';</script>";
-}
+$rows = db_all($conn, "SELECT id, username, role, created_at FROM users ORDER BY FIELD(role, 'admin', 'teknisi', 'pelanggan'), username");
+
+$form = function ($u = null) {
+    $h = '<form method="post">' . csrf_field()
+        . '<input type="hidden" name="action" value="' . ($u ? 'edit' : 'tambah') . '"><input type="hidden" name="id" value="' . (int)($u['id'] ?? 0) . '">'
+        . '<div class="modal-body">'
+        . '<label class="field"><span class="label">Username</span><input class="input" name="username" value="' . e($u['username'] ?? '') . '" placeholder="Masukkan username" required></label>'
+        . '<label class="field"><span class="label">Password</span><input class="input" type="password" name="password" minlength="6" placeholder="' . ($u ? 'Kosongkan jika tidak diubah' : 'Minimal 6 karakter') . '"' . ($u ? '' : ' required') . '></label>'
+        . '<div class="field"><span class="label">Role</span><div class="radio-group">';
+    foreach (ROLE_LABEL as $value => $label) {
+        $checked = ($u['role'] ?? 'teknisi') === $value;
+        $h .= '<label class="radio"><input type="radio" name="role" value="' . $value . '"' . ($checked ? ' checked' : '') . '><span>' . $label . '</span></label>';
+    }
+    return $h . '</div><span class="help">Untuk pelanggan, lengkapi nama, email & no. HP lewat menu Pelanggan.</span></div></div>'
+        . '<div class="modal-footer"><button type="button" class="btn btn-secondary" data-close>Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div></form>';
+};
 ?>
+<?= page_head('Data User', 'Kelola akun yang dapat masuk ke sistem.', '<button type="button" class="btn btn-success" data-open="modalTambah">' . ic('plus', 'icon icon-sm') . '<span>Tambah User</span></button>') ?>
+<?= render_flash() ?>
 
-
-<div class="container">
-  <h4>Data User</h4>
-  <!-- Button trigger modal -->
-<button type="button" class=" my-2 btn btn-success" data-bs-toggle="modal" data-bs-target="#userModal">Tambah User</button>
-<div class="table-responsive">
-  <table class="table table-bordered">
-    <thead>
-      <tr>
-        <tr><th>ID</th><th>Username</th><th>Role</th><th>Aksi</th></tr>
-      </tr>
-    </thead>
-    <tbody>
-      <?php $no=1; while($row = $result->fetch_assoc()): ?>
-      <tr>
-        <td><?= $no++ ?></td>
-        <td><?= $row['username'] ?></td>
-        <td><?= $row['role'] ?></td>
-        <td>
-            <a href="?page=users&delete=<?= $row['id'] ?>" onclick="return confirm('Yakin ingin hapus?')" class="btn btn-danger btn-sm">Hapus</a>
-    </tr>
-      <!-- Modal Edit di dalam loop -->
-        <div class="modal fade" id="modalEditProduct<?= $row['id'] ?>" tabindex="-1" aria-labelledby="modalEditProduct<?= $row['id'] ?>" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-            <form method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="id" value="<?= $row['id'] ?>">
-                <div class="modal-header">
-                <h5 class="modal-title" id="modalEditProduct<?= $row['id'] ?>">Edit Kategori Produk</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                </div>
-                <div class="modal-body">
-                <input type="text" name="nama" value="<?= $row['nama'] ?>" class="form-control mb-2" required>
-                <input type="number" name="harga" value="<?= $row['harga'] ?>" class="form-control mb-2" required>
-                <!-- Kategori Radio Button -->
-                    <div class="mb-2">
-                    <label class="form-label">Kategori:</label><br>
-                    <?php foreach ($kategori as $k): ?>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="catg_id" id="cat<?= $row['id'] . '_' . $k['id'] ?>" value="<?= $k['id'] ?>" <?= $k['id'] == $row['catg_id'] ? 'checked' : '' ?>>
-                        <label class="form-check-label" for="cat<?= $row['id'] . '_' . $k['id'] ?>"><?= $k['nama'] ?></label>
-                    </div>
-                    <?php endforeach; ?>
-                    </div>
-                <input type="file" name="gambar" class="form-control mb-2">
-                <?php if (!empty($row['gambar'])): ?>
-                <div class="mb-2">
-                    <img src="assets/image/<?= $row['gambar'] ?>" width="80">
-                    <p class="text-muted" style="font-size: 0.8em;">Gambar saat ini</p>
-                </div>
-                <?php endif; ?>
-                <select name="status" class="form-control">
-                    <option value="1" <?= $row['status'] == '1' ? 'selected' : '' ?>>Aktif</option>
-                    <option value="0" <?= $row['status'] == '0' ? 'selected' : '' ?>>Nonaktif</option>
-                </select>
-                </div>
-                <div class="modal-footer">
-                <button type="submit" name="edit" class="btn btn-primary">Simpan Perubahan</button>
-                <!-- <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button> -->
-                </div>
-            </form>
-            </div>
-        </div>
-        </div>
-
-      <?php endwhile; ?>
-    </tbody>
-  </table>
-</div>
-</div>
-
-<!-- modal tambah user -->
-<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <form id="userForm" method="POST">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="userModalLabel">Tambah/Edit User</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="id" id="userId">
-
-          <div class="mb-3">
-            <label for="username" class="form-label">Username</label>
-            <input type="text" class="form-control" id="username" name="username" required>
-          </div>
-
-          <div class="mb-3">
-            <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="password" name="password" required>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label d-block">Role</label>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="role" id="roleAdmin" value="admin" required>
-              <label class="form-check-label" for="roleAdmin">Admin</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="role" id="roleTechnician" value="teknisi" required>
-              <label class="form-check-label" for="roleTechnician">Technician</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="role" id="rolePelanggan" value="pelanggan" required>
-              <label class="form-check-label" for="rolePelanggan">Pelanggan</label>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary" name="tambah">Simpan</button>
-        </div>
+<div class="card">
+  <div class="table">
+    <div class="tr thead"><div class="th" style="width:90px">ID</div><div class="th" style="flex:1">Username</div><div class="th" style="width:220px">Role</div><div class="th" style="width:200px">Dibuat</div><div class="th" style="width:200px">Aksi</div></div>
+    <?php foreach ($rows as $u): ?>
+    <div class="tr">
+      <div class="td muted" style="width:90px"><?= (int)$u['id'] ?></div>
+      <div class="td" style="flex:1"><span class="avatar"><?= e(initials($u['username'])) ?></span><span class="semibold"><?= e($u['username']) ?></span><?= (int)$u['id'] === (int)$me['id'] ? '<span class="small muted">(Anda)</span>' : '' ?></div>
+      <div class="td" style="width:220px"><?= badge($u['role'], ROLE_LABEL[$u['role']]) ?></div>
+      <div class="td muted" style="width:200px"><?= tgl($u['created_at'], false) ?></div>
+      <div class="td" style="width:200px">
+        <button type="button" class="btn btn-warning btn-sm" data-open="modalEdit<?= (int)$u['id'] ?>"><?= ic('edit', 'icon icon-sm') ?><span>Edit</span></button>
+        <?php if ((int)$u['id'] !== (int)$me['id']): ?><?= delete_button('hapus', $u['id'], 'Akun "' . $u['username'] . '" akan dihapus.') ?><?php endif; ?>
       </div>
-    </form>
+    </div>
+    <?php endforeach; ?>
   </div>
 </div>
+
+<?= modal_open('modalTambah', 'Tambah User') . $form() . modal_close() ?>
+<?php foreach ($rows as $u): ?>
+  <?= modal_open('modalEdit' . (int)$u['id'], 'Edit User') . $form($u) . modal_close() ?>
+<?php endforeach; ?>

@@ -56,15 +56,9 @@ if (!defined('BASE_URL')) {
     define('BASE_URL', $protocol . "://" . $http_host . $base_path);
 }
 
-// URL untuk user dan admin (DENGAN garis miring di akhir)
-$base_url_user  = BASE_URL . "/";
-$base_url_admin = BASE_URL . "/admin/";
+mysqli_set_charset($conn, 'utf8mb4');
 
-// Fungsi untuk menampilkan pesan flash (di config.php agar bisa diakses oleh semua halaman)
-// Pesan ini akan muncul sebagai alert JavaScript sebelum halaman dimuat.
-if (isset($_SESSION['message'])) {
-    $js_message = addslashes($_SESSION['message']); // Escape untuk JavaScript
-    echo "<script>alert('{$js_message}');</script>";
-    unset($_SESSION['message']); // Hapus pesan setelah ditampilkan
-}
-?>
+// Helper & autentikasi dipakai di semua halaman.
+// Pesan flash ditampilkan oleh layout (render_flash), bukan lewat alert JavaScript.
+require_once ROOT_PATH . '/functions/helpers.php';
+require_once ROOT_PATH . '/functions/auth.php';

@@ -1,28 +1,43 @@
 <?php
+// Router panel admin & teknisi: admin/index.php?page=<nama>
+// Login & logout memakai halaman publik (index.php?page=login / logout).
 require_once __DIR__ . '/../config/config.php';
+require_once ROOT_PATH . '/inc/layout.php';
+require_once ROOT_PATH . '/functions/service.php';
 
-// Cek apakah user sudah login
-if (!isset($_SESSION['role']) || ($_SESSION['role'] != 'admin' && $_SESSION['role'] != 'teknisi')) {
-    $_SESSION['message'] = "Silakan login terlebih dahulu.";
-    header("Location: login.php"); // Redirect ke halaman login
+$routes = [
+    'dashboard'     => ['Dashboard', ['admin', 'teknisi']],
+    'produk'        => ['Data Produk', ['admin']],
+    'kategori'      => ['Kategori Produk', ['admin']],
+    'users'         => ['Data User', ['admin']],
+    'pelanggan'     => ['Data Pelanggan', ['admin']],
+    'service'       => ['Service Management', ['admin', 'teknisi']],
+    'invoice'       => ['Manajemen Invoice', ['admin']],
+    'invoice_cetak' => ['Cetak Invoice', ['admin']],   // keluaran PDF, tanpa layout
+];
+
+$me = getCurrentUser($conn);
+requireRole($me, ['admin', 'teknisi']);
+
+$page = $_GET['page'] ?? 'dashboard';
+if (!isset($routes[$page])) {
+    flash('danger', 'Halaman tidak ditemukan.');
+    redirect('admin/index.php');
+}
+[$title, $roles] = $routes[$page];
+requireRole($me, $roles);
+verify_csrf();
+
+if ($page === 'invoice_cetak') {
+    require __DIR__ . '/pages/invoice_cetak.php';
     exit;
 }
 
-// logout
-if (isset($_GET['logout'])) {
-    session_unset();       // Hapus semua variabel sesi
-    session_destroy();     // Hancurkan sesi
-    header("Location: login.php"); // Redirect ke halaman login
-    exit;
-}
+// Halaman memproses form lebih dulu (pola POST → redirect), lalu dirender ke layout
+ob_start();
+require __DIR__ . '/pages/' . $page . '.php';
+$content = ob_get_clean();
 
-include "inc/header.php";
-$page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
-$file = "pages/" . $page . ".php";
-if (file_exists($file)) {
-    include $file;
-} else {
-    echo "<h1>404 - Admin Page Not Found</h1>";
-}
-include "inc/footer.php";
-?>
+echo layout_head($title);
+echo '<div class="frame">' . nav_panel($page, $me) . '<main class="admin-content">' . $content . '</main></div>';
+echo layout_foot();

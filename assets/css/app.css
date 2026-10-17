@@ -1,0 +1,120 @@
+/* =========================================================
+   Vasta Computer — penyesuaian web untuk design.css
+   design.css = design system yang sama dengan file Figma
+   (figma-design/). File ini hanya menambahkan perilaku web:
+   lebar responsif, elemen form asli, modal, hover, dll.
+   ========================================================= */
+
+body { background: var(--bg); min-height: 100vh; }
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; }
+button { font-family: inherit; }
+.hidden { display: none !important; }
+.link { color: var(--primary); font-weight: 600; }
+.link:hover { text-decoration: underline; }
+
+/* ---------- Lebar halaman ---------- */
+.frame { width: 100%; min-height: 100vh; }
+.container { width: 100%; max-width: 1248px; padding: 0 24px; }
+.navbar { padding: 0 max(24px, calc((100% - 1200px) / 2)); position: sticky; top: 0; z-index: 50; gap: 16px; }
+.navbar-admin { padding: 0 24px; }
+.admin-content { padding: 32px 24px 48px; max-width: 1600px; width: 100%; margin: 0 auto; }
+
+/* ---------- Interaksi ---------- */
+.brand, .nav-link, .nav-user { white-space: nowrap; }
+.navbar-admin .nav-link { padding: 8px 10px; }
+.nav-link { cursor: pointer; transition: background .15s, color .15s; }
+.nav-link:hover { background: rgba(255, 255, 255, .7); color: var(--primary); }
+.btn { cursor: pointer; transition: filter .15s, background .15s; font-family: inherit; }
+.btn:hover { filter: brightness(.94); }
+.btn-outline-primary:hover { background: var(--primary-soft); filter: none; }
+.btn-outline-secondary:hover, .btn-light:hover { background: #f1f5f9; filter: none; }
+.btn-outline-dark:hover { background: var(--dark); color: #fff; filter: none; }
+.page { cursor: pointer; }
+.page:hover:not(.active):not(.disabled) { background: var(--primary-soft); }
+.page.disabled { cursor: default; }
+.card-shadow { transition: transform .3s, box-shadow .3s; }
+.product-card:hover, .feature-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0, 0, 0, .14); }
+.tr:not(.thead):hover { background: #f8fafc; }
+.inline-form { display: inline-flex; margin: 0; }
+.card-body.toolbar { flex-direction: row; align-items: center; justify-content: space-between; }
+.td > .btn + .btn, .td > .btn + .inline-form, .td > .inline-form + .btn { margin-left: 6px; }
+
+/* ---------- Elemen form asli ---------- */
+input.input, select.input, textarea.input {
+  width: 100%; font-family: inherit; outline: none; display: block;
+}
+input.input:focus, select.input:focus, textarea.input:focus {
+  border-color: #86b7fe; box-shadow: 0 0 0 4px rgba(13, 110, 253, .15);
+}
+input.input::placeholder, textarea.input::placeholder { color: #94a3b8; }
+input.input[readonly] { background: #f1f5f9; color: #475569; }
+select.input {
+  appearance: none; -webkit-appearance: none; padding-right: 38px; cursor: pointer;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;
+}
+select.input-sm { height: 40px; width: auto; min-width: 170px; }
+textarea.input { height: auto; min-height: 96px; padding: 12px 14px; resize: vertical; line-height: 1.5; }
+input.input-file { height: 42px; padding: 0; overflow: hidden; color: #64748b; cursor: pointer; }
+input.input-file::file-selector-button {
+  height: 100%; margin-right: 14px; padding: 0 14px; border: none; border-right: 1px solid var(--border-strong);
+  background: #f1f5f9; color: #334155; font-family: inherit; font-weight: 600; cursor: pointer;
+}
+.radio { cursor: pointer; }
+.radio input { width: 18px; height: 18px; margin: 0; accent-color: var(--primary); cursor: pointer; }
+.input-group .input { min-width: 0; }
+.input-group .btn { height: 42px; }
+.field-row { display: flex; gap: 16px; }
+.field-row > .field { flex: 1; min-width: 0; }
+
+/* ---------- Alert ---------- */
+.alert-close { background: none; border: none; padding: 4px; color: inherit; cursor: pointer; display: flex; opacity: .7; }
+.alert-close:hover { opacity: 1; }
+.flash-stack { display: flex; flex-direction: column; gap: 12px; }
+
+/* ---------- Modal ---------- */
+.overlay {
+  position: fixed; inset: 0; width: auto; min-height: 0; z-index: 100;
+  display: none; align-items: flex-start; padding: 48px 16px; overflow-y: auto;
+}
+.overlay.open { display: flex; }
+.modal { margin: auto; max-width: 100%; }
+.modal-close { background: none; border: none; cursor: pointer; }
+.modal-close:hover { background: #f1f5f9; }
+body.modal-open { overflow: hidden; }
+
+/* ---------- Tabel & data ---------- */
+.table-wrap { width: 100%; overflow-x: auto; }
+.table-wrap .table { min-width: 900px; }
+.empty { padding: 40px 16px; text-align: center; color: var(--muted); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.thumb img, .thumb-img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+.photo-img { width: 100%; max-height: 260px; object-fit: contain; border-radius: 10px; border: 1px solid var(--border); background: #f8fafc; }
+.td .muted { overflow: hidden; text-overflow: ellipsis; }
+.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- Landing ---------- */
+.hero-img { max-width: 48%; }
+.product-card { width: calc((100% - 72px) / 4); }
+.product-photo { width: 100%; height: 200px; object-fit: contain; padding: 16px; background: #f8fafc; display: block; }
+.map-frame { width: 588px; max-width: 100%; height: 330px; border: 0; border-radius: 12px; }
+.footer a:hover { text-decoration: underline; }
+
+/* ---------- Responsif ---------- */
+@media (max-width: 1180px) {
+  .navbar-admin { height: auto; padding-top: 10px; padding-bottom: 10px; flex-wrap: wrap; }
+  .navbar-admin .nav-links { flex-wrap: wrap; order: 3; width: 100%; }
+}
+@media (max-width: 960px) {
+  .stack { flex-direction: column !important; align-items: stretch !important; }
+  .stack > * { width: 100% !important; max-width: 100% !important; }
+  .product-card { width: calc((100% - 24px) / 2); }
+  .display { font-size: 36px; line-height: 44px; }
+  .navbar { height: auto; padding-top: 10px; padding-bottom: 10px; flex-wrap: wrap; }
+  .page-head, .toolbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .toolbar > * { width: 100%; }
+  .input-group[style] { width: 100% !important; }
+}
+@media (max-width: 560px) {
+  .product-card { width: 100%; }
+  .field-row { flex-direction: column; }
+}

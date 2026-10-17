@@ -1,148 +1,62 @@
 <?php
-// session_start();
-// require_once 'config.php';
+// Dashboard pelanggan (Figma: 04 & 05)
+require_once ROOT_PATH . '/functions/service.php';
 
-// Cek login
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'pelanggan') {
-    header('Location: login.php');
-    exit;
-}
-
-$user_id = $_SESSION['user_id'];
-
-// Ambil data pelanggan
-$query_pelanggan = "SELECT p.* FROM pelanggan p JOIN users u ON p.user_id = u.id WHERE u.id = ?";
-$stmt_pelanggan = $conn->prepare($query_pelanggan);
-$stmt_pelanggan->bind_param("i", $user_id);
-$stmt_pelanggan->execute();
-$pelanggan = $stmt_pelanggan->get_result()->fetch_assoc();
-
-// Ambil service
-$query_service = "SELECT s.*, u.username as nama_teknisi 
-                 FROM service s 
-                 LEFT JOIN users u ON s.id_teknisi = u.id 
-                 WHERE s.id_pelanggan = ? 
-                 ORDER BY s.tanggal_masuk DESC";
-$stmt_service = $conn->prepare($query_service);
-$stmt_service->bind_param("i", $pelanggan['id']);
-$stmt_service->execute();
-$services = $stmt_service->get_result()->fetch_all(MYSQLI_ASSOC);
+$pelanggan = db_one($conn, "SELECT * FROM pelanggan WHERE user_id = ?", 'i', $me['id']);
+$services  = $pelanggan
+    ? db_all($conn, SERVICE_SELECT . " WHERE s.id_pelanggan = ? ORDER BY s.tanggal_masuk DESC", 'i', $pelanggan['id'])
+    : [];
+$count = array_count_values(array_column($services, 'status'));
+$cards = [
+    ['Total Service', count($services), 'wrench', '#0d6efd'],
+    ['Sedang Diproses', $count['diproses'] ?? 0, 'clock', '#0aa2c0'],
+    ['Selesai', $count['selesai'] ?? 0, 'check', '#198754'],
+];
 ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard Pelanggan</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .custom-modal {
-            display: none;
-            position: fixed;
-            z-index: 1055;
-            left: 0; top: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            overflow-y: auto;
-        }
-        .custom-modal:target {
-            display: block;
-        }
-        .custom-modal .modal-dialog {
-            margin: 50px auto;
-            max-width: 800px;
-        }
-    </style>
-</head>
-<!-- <body class="bg-light"> -->
-<div class="container py-4">
-    <h3>Selamat Datang, <?= htmlspecialchars($pelanggan['nama']) ?></h3>
-    <hr>
+<div class="container gap-24" style="padding-top:40px;padding-bottom:56px">
+  <?= render_flash() ?>
+  <div class="col gap-8">
+    <h1 class="h1">Selamat Datang, <?= e($pelanggan['nama'] ?? $me['username']) ?></h1>
+    <p class="body">Berikut daftar perangkat yang sedang dan pernah Anda servis di Vasta Computer.</p>
+  </div>
 
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th>#</th><th>Jenis Kerusakan</th><th>Status</th><th>Teknisi</th><th>Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php $no=1; foreach ($services as $s): ?>
-            <tr>
-                <td><?= $no++ ?></td>
-                <td><?= htmlspecialchars($s['jenis_kerusakan']) ?></td>
-                <td><?= $s['status'] ?></td>
-                <td><?= $s['nama_teknisi'] ?? '-' ?></td>
-                <td>
-                    <a href="#modal-<?= $s['id'] ?>" class="btn btn-sm btn-outline-primary">Detail</a>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
+  <div class="row gap-16 stack">
+    <?php foreach ($cards as [$label, $value, $icon, $color]): ?>
+    <div class="card grow"><div class="card-body" style="flex-direction:row;align-items:center">
+      <div class="stat-icon" style="background:<?= $color ?>1a;color:<?= $color ?>"><?= ic($icon) ?></div>
+      <div class="col gap-4"><div class="small muted semibold"><?= $label ?></div><div class="h2"><?= (int)$value ?></div></div>
+    </div></div>
+    <?php endforeach; ?>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2 class="h4">Riwayat Service</h2></div>
+    <?php if (!$services): ?>
+      <div class="empty"><?= ic('laptop', 'icon icon-xl') ?>Belum ada data service. Bawa perangkat Anda ke toko kami untuk mulai servis.</div>
+    <?php else: ?>
+    <div class="table-wrap"><div class="table">
+      <div class="tr thead">
+        <div class="th" style="width:60px">#</div><div class="th" style="flex:1">Jenis Kerusakan</div><div class="th" style="width:160px">Status</div>
+        <div class="th" style="width:180px">Teknisi</div><div class="th" style="width:200px">Tanggal Masuk</div><div class="th" style="width:130px">Aksi</div>
+      </div>
+      <?php foreach ($services as $i => $s): ?>
+      <div class="tr">
+        <div class="td" style="width:60px"><?= $i + 1 ?></div>
+        <div class="td semibold" style="flex:1"><?= e($s['jenis_kerusakan']) ?></div>
+        <div class="td" style="width:160px"><?= badge_service($s['status']) ?></div>
+        <div class="td" style="width:180px"><?= e($s['nama_teknisi'] ?: '-') ?></div>
+        <div class="td" style="width:200px"><?= tgl($s['tanggal_masuk']) ?></div>
+        <div class="td" style="width:130px"><button type="button" class="btn btn-outline-primary btn-sm" data-open="detail-<?= (int)$s['id'] ?>"><?= ic('eye', 'icon icon-sm') ?><span>Detail</span></button></div>
+      </div>
+      <?php endforeach; ?>
+    </div></div>
+    <?php endif; ?>
+  </div>
 </div>
 
 <?php foreach ($services as $s): ?>
-<div id="modal-<?= $s['id'] ?>" class="custom-modal">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <a href="#" class="btn-close position-absolute end-0 m-3"></a>
-      <div class="modal-header">
-        <h5 class="modal-title">Detail Service</h5>
-      </div>
-      <div class="modal-body">
-        <h6>Informasi Service</h6>
-        <table class="table table-bordered small">
-          <tr><th>ID</th><td><?= $s['id'] ?></td></tr>
-          <tr><th>Kerusakan</th><td><?= htmlspecialchars($s['jenis_kerusakan']) ?></td></tr>
-          <tr><th>Deskripsi</th><td><?= nl2br(htmlspecialchars($s['deskripsi'])) ?></td></tr>
-          <tr><th>Status</th><td><?= ucfirst($s['status']) ?></td></tr>
-        </table>
-
-        <?php
-        $stmt = $conn->prepare("SELECT hs.*, u.username as updated_by_name FROM history_status hs LEFT JOIN users u ON hs.updated_by = u.id WHERE hs.service_id = ? ORDER BY hs.updated_on DESC");
-        $stmt->bind_param("i", $s['id']);
-        $stmt->execute();
-        $history = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        ?>
-
-        <h6>Riwayat Status</h6>
-        <table class="table table-bordered table-sm small">
-          <thead><tr><th>Status</th><th>Oleh</th><th>Waktu</th><th>Catatan</th></tr></thead>
-          <tbody>
-          <?php foreach ($history as $h): ?>
-            <tr>
-              <td><?= $h['status'] ?></td>
-              <td><?= $h['updated_by_name'] ?? 'System' ?></td>
-              <td><?= date('d-m-Y H:i', strtotime($h['updated_on'])) ?></td>
-              <td><?= nl2br(htmlspecialchars($h['catatan'])) ?></td>
-            </tr>
-          <?php endforeach; ?>
-          </tbody>
-        </table>
-
-        <?php
-        $stmt = $conn->prepare("SELECT * FROM invoice WHERE service_id = ?");
-        $stmt->bind_param("i", $s['id']);
-        $stmt->execute();
-        $invoice = $stmt->get_result()->fetch_assoc();
-        ?>
-        <?php if ($invoice): ?>
-        <h6>Invoice</h6>
-        <table class="table table-bordered small">
-          <tr><th>ID</th><td><?= 'INV-' . $invoice['id'] ?></td></tr>
-          <tr><th>Tanggal</th><td><?= date('d-m-Y H:i', strtotime($invoice['tanggal_invoice'])) ?></td></tr>
-          <tr><th>Total</th><td>Rp<?= number_format($invoice['total_biaya'], 0, ',', '.') ?></td></tr>
-          <tr><th>Pembayaran</th><td><?= htmlspecialchars($invoice['metode_pembayaran']) ?></td></tr>
-          <tr><th>Status</th><td><?= ucfirst($invoice['status_pembayaran']) ?></td></tr>
-          <tr><th>Keterangan</th><td><?= nl2br(htmlspecialchars($invoice['keterangan'])) ?></td></tr>
-        </table>
-        <?php endif; ?>
-      </div>
-      <div class="modal-footer">
-        <a href="#" class="btn btn-secondary">Tutup</a>
-      </div>
-    </div>
-  </div>
-</div>
+  <?= modal_open('detail-' . (int)$s['id'], 'Detail Service', 'modal-lg') ?>
+  <div class="modal-body"><?= service_detail_body($conn, $s) ?></div>
+  <div class="modal-footer"><button type="button" class="btn btn-secondary" data-close>Tutup</button></div>
+  <?= modal_close() ?>
 <?php endforeach; ?>
-<!-- </body>
-</html> -->
