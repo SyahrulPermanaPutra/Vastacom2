@@ -9,10 +9,11 @@ const STATUS_SERVICE = [
     'dibatalkan' => ['Dibatalkan', 'batal'],
 ];
 const STATUS_BAYAR = [
-    'pending' => ['Pending', 'menunggu'],
+    'pending' => ['Belum Lunas', 'menunggu'],
     'lunas'   => ['Lunas', 'selesai'],
     'batal'   => ['Batal', 'batal'],
 ];
+const METODE_BAYAR = ['Tunai', 'Transfer Bank', 'QRIS', 'Kartu Debit'];
 const ROLE_LABEL = ['admin' => 'Admin', 'teknisi' => 'Teknisi', 'pelanggan' => 'Pelanggan'];
 
 function e($v) {
@@ -52,6 +53,15 @@ function tgl($datetime, $withTime = true) {
     $bulan = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     $t = strtotime($datetime);
     return date('d', $t) . ' ' . $bulan[(int)date('n', $t)] . ' ' . date('Y', $t) . ($withTime ? ' ' . date('H:i', $t) : '');
+}
+
+/** <option> metode pembayaran; nilai lama di luar daftar tetap ditampilkan agar tidak hilang saat disimpan ulang. */
+function metode_options($selected = '') {
+    $list = METODE_BAYAR;
+    if ($selected !== '' && !in_array($selected, $list, true)) $list[] = $selected;
+    $h = '<option value="">-- Pilih Metode --</option>';
+    foreach ($list as $m) $h .= '<option value="' . e($m) . '"' . ($m === $selected ? ' selected' : '') . '>' . e($m) . '</option>';
+    return $h;
 }
 
 function badge($variant, $text) {

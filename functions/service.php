@@ -35,11 +35,12 @@ function create_invoice($conn, $post, $adminId) {
     $total     = (float)($post['total_biaya'] ?? 0);
     $status    = $post['status_pembayaran'] ?? 'pending';
     if (!isset(STATUS_BAYAR[$status])) return 'Status pembayaran tidak valid.';
+    if (!in_array($post['metode_pembayaran'] ?? '', METODE_BAYAR, true)) return 'Pilih metode pembayaran.';
     if ($total <= 0) return 'Total biaya harus lebih dari 0.';
     $service = db_one($conn, "SELECT status FROM service WHERE id = ?", 'i', $serviceId);
-    if (!$service) return 'Service tidak ditemukan.';
-    if ($service['status'] !== 'selesai') return 'Invoice hanya bisa dibuat untuk service yang sudah selesai.';
-    if (service_invoice($conn, $serviceId)) return 'Service ini sudah memiliki invoice.';
+    if (!$service) return 'Servis tidak ditemukan.';
+    if ($service['status'] !== 'selesai') return 'Invoice hanya bisa dibuat untuk servis yang sudah selesai.';
+    if (service_invoice($conn, $serviceId)) return 'Servis ini sudah memiliki invoice.';
 
     $now   = date('Y-m-d H:i:s');
     $bayar = $status === 'lunas' ? $now : null;
@@ -60,12 +61,12 @@ function service_detail_body($conn, $s, $invoiceActions = '') {
     };
     $foto = service_photo_url($s['foto_kerusakan']);
 
-    $left = '<div class="h4">Informasi Service</div>'
+    $left = '<div class="h4">Informasi Servis</div>'
         . $kv([
-            'ID Service'     => '#SVC-' . (int)$s['id'],
+            'ID Servis'      => '#SVC-' . (int)$s['id'],
             'Pelanggan'      => e($s['nama_pelanggan']),
             'Tanggal Masuk'  => tgl($s['tanggal_masuk']),
-            'Tanggal Update' => tgl($s['tanggal_update']),
+            'Terakhir Diubah' => tgl($s['tanggal_update']),
             'Teknisi'        => e($s['nama_teknisi'] ?: '-'),
             'Status'         => badge_service($s['status']),
         ])

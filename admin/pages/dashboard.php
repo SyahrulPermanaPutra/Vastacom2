@@ -13,9 +13,9 @@ if ($isAdmin) {
     $pendapatan = db_one($conn, "SELECT COALESCE(SUM(total_biaya), 0) n FROM invoice WHERE status_pembayaran = 'lunas'
                                  AND DATE_FORMAT(COALESCE(tanggal_pembayaran, tanggal_invoice), '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')")['n'];
     $stats = [
-        ['Total Service', $totalService, 'wrench', 'bg-primary'],
+        ['Total Servis', $totalService, 'wrench', 'bg-primary'],
         ['Pelanggan', db_one($conn, "SELECT COUNT(*) n FROM pelanggan")['n'], 'users', 'bg-success'],
-        ['Invoice Pending', db_one($conn, "SELECT COUNT(*) n FROM invoice WHERE status_pembayaran = 'pending'")['n'], 'receipt', 'bg-warning'],
+        ['Invoice Belum Lunas', db_one($conn, "SELECT COUNT(*) n FROM invoice WHERE status_pembayaran = 'pending'")['n'], 'receipt', 'bg-warning'],
         ['Pendapatan Bulan Ini', rp($pendapatan), 'wallet', 'bg-info'],
     ];
     $invoices = db_all($conn, "SELECT i.*, p.nama AS nama_pelanggan FROM invoice i JOIN service s ON i.service_id = s.id
@@ -33,7 +33,7 @@ $recent = db_all($conn, SERVICE_SELECT . $scope . " ORDER BY s.tanggal_masuk DES
 // Donut chart status service (SVG, tanpa library)
 $colors = ['selesai' => '#198754', 'diproses' => '#0dcaf0', 'menunggu' => '#ffc107', 'dibatalkan' => '#dc3545'];
 $C = 2 * M_PI * 70;
-$donut = '<svg width="200" height="200" viewBox="0 0 220 220" role="img" aria-label="Statistik status service"><g transform="rotate(-90 110 110)">'
+$donut = '<svg width="200" height="200" viewBox="0 0 220 220" role="img" aria-label="Statistik status servis"><g transform="rotate(-90 110 110)">'
        . '<circle cx="110" cy="110" r="70" fill="none" stroke="#e2e8f0" stroke-width="34"/>';
 $offset = 0;
 $legend = '';
@@ -48,12 +48,12 @@ foreach ($colors as $status => $color) {
              . '</span><span class="semibold">' . $statusCount[$status] . ' · ' . round($pct * 100) . '%</span></div>';
 }
 $donut .= '</g><text x="110" y="108" text-anchor="middle" font-family="Inter, sans-serif" font-size="30" font-weight="800" fill="#212529">' . $totalService . '</text>'
-        . '<text x="110" y="130" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#64748b">Total Service</text></svg>';
+        . '<text x="110" y="130" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" fill="#64748b">Total Servis</text></svg>';
 ?>
-<?= page_head('Dashboard', 'Selamat datang di halaman dashboard <b>' . e($me['username']) . '</b> (' . ROLE_LABEL[$me['role']] . ')') ?>
+<?= page_head('Dasbor', 'Selamat datang di halaman dasbor <b>' . e($me['username']) . '</b> (' . ROLE_LABEL[$me['role']] . ')') ?>
 <?= render_flash() ?>
 
-<div class="row gap-20 stack">
+<div class="row gap-20 card-grid">
   <?php foreach ($stats as [$label, $value, $icon, $bg]): ?>
   <div class="stat-card <?= $bg ?>">
     <div class="row between items-center"><div class="stat-label"><?= $label ?></div><div class="stat-icon"><?= ic($icon, 'icon icon-lg') ?></div></div>
@@ -64,10 +64,10 @@ $donut .= '</g><text x="110" y="108" text-anchor="middle" font-family="Inter, sa
 
 <div class="row gap-20 items-start stack">
   <div class="card grow" style="min-width:0">
-    <div class="card-header"><h2 class="h4"><?= $isAdmin ? 'Service Terbaru' : 'Tugas Terbaru' ?></h2>
+    <div class="card-header"><h2 class="h4"><?= $isAdmin ? 'Servis Terbaru' : 'Tugas Terbaru' ?></h2>
       <a class="btn btn-outline-primary btn-sm" href="<?= e(url('admin/index.php?page=service')) ?>">Lihat Semua</a></div>
     <?php if (!$recent): ?>
-      <div class="empty"><?= ic('wrench', 'icon icon-xl') ?>Belum ada service.</div>
+      <div class="empty"><?= ic('wrench', 'icon icon-xl') ?>Belum ada servis.</div>
     <?php else: ?>
     <div class="table">
       <div class="tr thead"><div class="th" style="width:110px">ID</div><div class="th" style="width:170px">Pelanggan</div><div class="th" style="flex:1">Jenis Kerusakan</div><div class="th" style="width:140px">Status</div></div>
@@ -83,7 +83,7 @@ $donut .= '</g><text x="110" y="108" text-anchor="middle" font-family="Inter, sa
     <?php endif; ?>
   </div>
   <div class="card" style="width:460px">
-    <div class="card-header"><h2 class="h4">Statistik Service</h2></div>
+    <div class="card-header"><h2 class="h4">Statistik Servis</h2></div>
     <div class="card-body" style="flex-direction:row;align-items:center;gap:24px"><?= $donut ?><div class="col gap-12 grow"><?= $legend ?></div></div>
   </div>
 </div>
@@ -96,7 +96,7 @@ $donut .= '</g><text x="110" y="108" text-anchor="middle" font-family="Inter, sa
     <div class="empty"><?= ic('receipt', 'icon icon-xl') ?>Belum ada invoice.</div>
   <?php else: ?>
   <div class="table-wrap"><div class="table">
-    <div class="tr thead"><div class="th" style="width:170px">No. Invoice</div><div class="th" style="width:140px">Service ID</div><div class="th" style="flex:1">Pelanggan</div>
+    <div class="tr thead"><div class="th" style="width:170px">No. Invoice</div><div class="th" style="width:140px">ID Servis</div><div class="th" style="flex:1">Pelanggan</div>
       <div class="th" style="width:180px">Total Biaya</div><div class="th" style="width:140px">Status</div><div class="th" style="width:120px">Aksi</div></div>
     <?php foreach ($invoices as $inv): ?>
     <div class="tr">

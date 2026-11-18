@@ -53,6 +53,38 @@
     if (e.target.matches('[data-autosubmit]')) e.target.form.submit();
   });
 
+  // Navbar: tombol menu mobile & submenu
+  document.addEventListener('click', function (e) {
+    var toggle = e.target.closest('[data-nav-toggle]');
+    if (toggle) { toggle.closest('.navbar').classList.toggle('open'); return; }
+    var drop = e.target.closest('[data-dropdown]');
+    document.querySelectorAll('.nav-group.open').forEach(function (g) {
+      if (!drop || g !== drop.parentNode) g.classList.remove('open');
+    });
+    if (drop) drop.parentNode.classList.toggle('open');
+  });
+
+  // Form pengguna: kolom data pelanggan hanya tampil (dan wajib) bila role = pelanggan
+  function syncRole(form) {
+    var checked = form.querySelector('input[name=role]:checked');
+    var isPel = checked && checked.value === 'pelanggan';
+    var box = form.querySelector('[data-pelanggan-fields]');
+    box.classList.toggle('hidden', !isPel);
+    box.querySelectorAll('input[name=nama], input[name=email]').forEach(function (i) { i.required = isPel; });
+  }
+  document.querySelectorAll('[data-role-form]').forEach(syncRole);
+  document.addEventListener('change', function (e) {
+    if (e.target.name === 'role' && e.target.closest('[data-role-form]')) syncRole(e.target.closest('[data-role-form]'));
+  });
+
+  // Label kolom untuk tampilan tabel bertumpuk di layar kecil (lihat app.css)
+  document.querySelectorAll('.table').forEach(function (t) {
+    var heads = Array.prototype.map.call(t.querySelectorAll('.thead .th'), function (h) { return h.textContent.trim(); });
+    t.querySelectorAll('.tr:not(.thead)').forEach(function (r) {
+      Array.prototype.forEach.call(r.children, function (c, i) { if (heads[i]) c.setAttribute('data-label', heads[i]); });
+    });
+  });
+
   // Modal yang harus langsung terbuka (mis. ?view=ID atau form gagal validasi)
   document.querySelectorAll('[data-autoopen]').forEach(openModal);
 

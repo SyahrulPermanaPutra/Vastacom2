@@ -8,7 +8,7 @@ $services  = $pelanggan
     : [];
 $count = array_count_values(array_column($services, 'status'));
 $cards = [
-    ['Total Service', count($services), 'wrench', '#0d6efd'],
+    ['Total Servis', count($services), 'wrench', '#0d6efd'],
     ['Sedang Diproses', $count['diproses'] ?? 0, 'clock', '#0aa2c0'],
     ['Selesai', $count['selesai'] ?? 0, 'check', '#198754'],
 ];
@@ -20,7 +20,7 @@ $cards = [
     <p class="body">Berikut daftar perangkat yang sedang dan pernah Anda servis di Vasta Computer.</p>
   </div>
 
-  <div class="row gap-16 stack">
+  <div class="row gap-16 card-grid">
     <?php foreach ($cards as [$label, $value, $icon, $color]): ?>
     <div class="card grow"><div class="card-body" style="flex-direction:row;align-items:center">
       <div class="stat-icon" style="background:<?= $color ?>1a;color:<?= $color ?>"><?= ic($icon) ?></div>
@@ -30,9 +30,9 @@ $cards = [
   </div>
 
   <div class="card">
-    <div class="card-header"><h2 class="h4">Riwayat Service</h2></div>
+    <div class="card-header"><h2 class="h4">Riwayat Servis</h2></div>
     <?php if (!$services): ?>
-      <div class="empty"><?= ic('laptop', 'icon icon-xl') ?>Belum ada data service. Bawa perangkat Anda ke toko kami untuk mulai servis.</div>
+      <div class="empty"><?= ic('laptop', 'icon icon-xl') ?>Belum ada data servis. Bawa perangkat Anda ke toko kami untuk mulai servis.</div>
     <?php else: ?>
     <div class="table-wrap"><div class="table">
       <div class="tr thead">
@@ -55,7 +55,7 @@ $cards = [
 </div>
 
 <?php foreach ($services as $s): ?>
-  <?= modal_open('detail-' . (int)$s['id'], 'Detail Service', 'modal-lg') ?>
+  <?= modal_open('detail-' . (int)$s['id'], 'Detail Servis', 'modal-lg') ?>
   <div class="modal-body"><?= service_detail_body($conn, $s) ?></div>
   <div class="modal-footer"><button type="button" class="btn btn-secondary" data-close>Tutup</button></div>
   <?= modal_close() ?>

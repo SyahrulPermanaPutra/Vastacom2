@@ -1,4 +1,25 @@
+# Setting database pribadi tiap laptop (salin dari config/config.local.example.php)
 config/config.local.php
 
-# Folder dependency (bisa diinstall ulang via composer)
-/vendor/
+# File yang di-upload lewat aplikasi tidak ikut di-commit
+uploads/*
+!uploads/.gitkeep
+
+# Gambar produk hasil upload (nama acak) tidak ikut di-commit,
+# kecuali gambar bawaan untuk data awal (database/vastacom_db.sql)
+assets/image/*
+!assets/image/default.jpg
+!assets/image/lenovo-ideapad.jpg
+!assets/image/dell-latitude.jpeg
+!assets/image/logo-perusahaan.png
+
+# Sistem operasi & editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.log
+
+# Cache font yang dibuat Dompdf saat mencetak PDF
+vendor/dompdf/dompdf/lib/fonts/*.ufm.json

@@ -1,5 +1,5 @@
 <?php
-// Ikon SVG (Lucide) — dipakai bersama oleh aplikasi dan figma-design/build.php.
+// Ikon SVG (Lucide) yang dipakai di seluruh halaman.
 
 function ic($name, $cls = 'icon') {
     $p = [
@@ -23,6 +23,7 @@ function ic($name, $cls = 'icon') {
         'trash'    => '<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
         'search'   => '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
         'plus'     => '<path d="M5 12h14M12 5v14"/>',
+        'menu'     => '<path d="M4 6h16M4 12h16M4 18h16"/>',
         'x'        => '<path d="M18 6 6 18M6 6l12 12"/>',
         'left'     => '<path d="m15 18-6-6 6-6"/>',
         'right'    => '<path d="m9 18 6-6-6-6"/>',

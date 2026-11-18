@@ -4,16 +4,19 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Koneksi ke database
-$host = "localhost"; // Ganti sesuai hosting jika live
-$user = "root"; // Ganti sesuai hosting jika live
-$pass = "";     // Ganti sesuai hosting jika live
-$db   = "vastacom_db"; // Ganti jika perlu
-$port = 3306;
+// Koneksi ke database. Nilai bawaan ada di config/database.php,
+// setting per laptop di config/config.local.php (lihat config.local.example.php).
+$db_config = require __DIR__ . '/database.php';
 
-$conn = mysqli_connect($host, $user, $pass, $db, $port);
-if (!$conn) {
-    die("Koneksi gagal: " . mysqli_connect_error());
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+try {
+    $conn = mysqli_connect($db_config['host'], $db_config['user'], $db_config['pass'], $db_config['name'], (int)$db_config['port']);
+} catch (mysqli_sql_exception $e) {
+    http_response_code(500);
+    $hint = $e->getCode() === 1049
+        ? 'Database <b>' . htmlspecialchars($db_config['name']) . '</b> belum ada. Jalankan <code>php database/install.php</code> atau import <code>database/vastacom_db.sql</code>.'
+        : 'Pastikan MySQL sudah berjalan dan setting di <code>config/config.local.php</code> sudah benar.';
+    die('<h3>Koneksi database gagal</h3><p>' . $hint . '</p><p><small>' . htmlspecialchars($e->getMessage()) . '</small></p>');
 }
 
 // Path folder project di filesystem (misal: C:/laragon/www/vastacom)
@@ -22,7 +25,10 @@ if (!defined('ROOT_PATH')) {
 }
 
 // Deteksi otomatis path URL project (misal: "/vastacom" atau "/fp-pemrograman-web"),
-// sehingga nama folder hasil clone bebas. Bisa di-override lewat $base_path di config.local.php.
+// sehingga nama folder hasil clone bebas. Bisa di-override lewat 'base_path' di config.local.php.
+if (isset($db_config['base_path'])) {
+    $base_path = $db_config['base_path'];
+}
 if (!isset($base_path)) {
     $base_path = '';
     $script_file = isset($_SERVER['SCRIPT_FILENAME']) ? str_replace('\\', '/', realpath($_SERVER['SCRIPT_FILENAME']) ?: $_SERVER['SCRIPT_FILENAME']) : '';

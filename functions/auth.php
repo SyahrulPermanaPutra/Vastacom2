@@ -38,7 +38,7 @@ function requireRole($user, array $roles) {
 function loginUser($conn, $username, $password) {
     $user = db_one($conn, "SELECT id, username, password, role FROM users WHERE username = ?", 's', $username);
     if (!$user || !password_verify($password, $user['password'])) {
-        return ['status' => false, 'message' => 'Username atau password salah.'];
+        return ['status' => false, 'message' => 'Nama pengguna atau kata sandi salah.'];
     }
     session_regenerate_id(true);
     $_SESSION['user_id']  = $user['id'];
@@ -46,38 +46,6 @@ function loginUser($conn, $username, $password) {
     $_SESSION['role']     = $user['role'];
     $_SESSION['loggedin'] = true;
     return ['status' => true, 'role' => $user['role']];
-}
-
-/** Daftarkan akun baru dengan role pelanggan (tabel users + pelanggan). */
-function registerUserAsPelanggan($conn, $username, $password, $nama, $email, $no_hp) {
-    if ($username === '' || $password === '' || $nama === '' || $email === '') {
-        return ['status' => false, 'message' => 'Username, password, nama, dan email wajib diisi.'];
-    }
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        return ['status' => false, 'message' => 'Format email tidak valid.'];
-    }
-    if (strlen($password) < 6) {
-        return ['status' => false, 'message' => 'Password minimal 6 karakter.'];
-    }
-    if (db_one($conn, "SELECT id FROM users WHERE username = ?", 's', $username)) {
-        return ['status' => false, 'message' => 'Username sudah terdaftar.'];
-    }
-    if (db_one($conn, "SELECT id FROM pelanggan WHERE email = ?", 's', $email)) {
-        return ['status' => false, 'message' => 'Email sudah terdaftar.'];
-    }
-
-    $conn->begin_transaction();
-    try {
-        db_exec($conn, "INSERT INTO users (username, password, role) VALUES (?, ?, 'pelanggan')", 'ss', $username, password_hash($password, PASSWORD_DEFAULT));
-        $user_id = $conn->insert_id;
-        db_exec($conn, "INSERT INTO pelanggan (user_id, nama, email, no_hp) VALUES (?, ?, ?, ?)", 'isss', $user_id, $nama, $email, $no_hp);
-        $conn->commit();
-        return ['status' => true, 'message' => 'Registrasi berhasil! Silakan login.'];
-    } catch (Throwable $e) {
-        $conn->rollback();
-        error_log('Registrasi gagal: ' . $e->getMessage());
-        return ['status' => false, 'message' => 'Registrasi gagal. Silakan coba lagi nanti.'];
-    }
 }
 
 /** Logout semua role, lalu kembali ke halaman login publik. */

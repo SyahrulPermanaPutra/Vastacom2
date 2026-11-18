@@ -14,15 +14,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?= csrf_field() ?>
     <div class="col items-center gap-12 text-center">
       <div class="feature-icon" style="width:56px;height:56px"><?= ic('lock', 'icon icon-lg') ?></div>
-      <h1 class="h2">Login ke Akun Anda</h1>
+      <h1 class="h2">Masuk ke Akun Anda</h1>
       <p class="body">Pelanggan, teknisi, dan admin masuk melalui halaman ini.</p>
     </div>
     <?= render_flash() ?>
-    <label class="field"><span class="label">Username</span>
+    <label class="field"><span class="label">Nama Pengguna</span>
       <input class="input" type="text" name="username" value="<?= e($username) ?>" required autofocus autocomplete="username"></label>
-    <label class="field"><span class="label">Password</span>
+    <label class="field"><span class="label">Kata Sandi</span>
       <input class="input" type="password" name="password" required autocomplete="current-password"></label>
-    <button type="submit" class="btn btn-primary btn-lg btn-block">Login</button>
-    <p class="body text-center">Belum punya akun? <a class="link" href="<?= e(url('index.php?page=register')) ?>">Daftar di sini</a></p>
+    <button type="submit" class="btn btn-primary btn-lg btn-block">Masuk</button>
+    <p class="body text-center">Belum punya akun? Akun pelanggan dibuatkan oleh admin saat Anda menyerahkan perangkat di toko.</p>
   </form>
 </div>

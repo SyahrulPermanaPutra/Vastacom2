@@ -1,13 +1,12 @@
 <?php
-// Router area publik & pelanggan: index.php?page=home|login|register|dashboard|logout
+// Router area publik & pelanggan: index.php?page=home|login|dashboard|logout
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/inc/layout.php';
 
 $routes = [
-    'home'      => 'Service & Jual Beli Laptop',
-    'login'     => 'Login',
-    'register'  => 'Registrasi',
-    'dashboard' => 'Dashboard Pelanggan',
+    'home'      => 'Servis & Jual Beli Laptop',
+    'login'     => 'Masuk',
+    'dashboard' => 'Dasbor Pelanggan',
 ];
 
 $page = $_GET['page'] ?? 'home';
@@ -20,8 +19,8 @@ if (!isset($routes[$page])) {
     flash('danger', 'Halaman tidak ditemukan.');
     redirect('');
 }
-// User yang sudah login tidak perlu membuka login/registrasi lagi
-if (in_array($page, ['login', 'register'], true) && $me) {
+// User yang sudah login tidak perlu membuka halaman login lagi
+if ($page === 'login' && $me) {
     redirect(homeForRole($me['role']));
 }
 if ($page === 'dashboard') {

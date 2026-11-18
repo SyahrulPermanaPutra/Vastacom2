@@ -6,12 +6,11 @@ require_once ROOT_PATH . '/inc/layout.php';
 require_once ROOT_PATH . '/functions/service.php';
 
 $routes = [
-    'dashboard'     => ['Dashboard', ['admin', 'teknisi']],
-    'produk'        => ['Data Produk', ['admin']],
+    'dashboard'     => ['Dasbor', ['admin', 'teknisi']],
     'kategori'      => ['Kategori Produk', ['admin']],
-    'users'         => ['Data User', ['admin']],
-    'pelanggan'     => ['Data Pelanggan', ['admin']],
-    'service'       => ['Service Management', ['admin', 'teknisi']],
+    'produk'        => ['Data Produk', ['admin']],
+    'pengguna'      => ['Data Pengguna', ['admin']],
+    'service'       => ['Manajemen Servis', ['admin', 'teknisi']],
     'invoice'       => ['Manajemen Invoice', ['admin']],
     'invoice_cetak' => ['Cetak Invoice', ['admin']],   // keluaran PDF, tanpa layout
 ];

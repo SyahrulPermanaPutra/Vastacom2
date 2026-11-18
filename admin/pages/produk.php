@@ -109,7 +109,7 @@ $form = function ($p = null) use ($kategori) {
       <div class="td" style="width:150px"><?= e($p['kategori'] ?? '-') ?></div>
       <div class="td" style="width:140px"><?= $p['status'] === '1' ? badge('aktif', 'Aktif') : badge('nonaktif', 'Nonaktif') ?></div>
       <div class="td" style="width:200px">
-        <button type="button" class="btn btn-warning btn-sm" data-open="modalEdit<?= (int)$p['id'] ?>"><?= ic('edit', 'icon icon-sm') ?><span>Edit</span></button>
+        <button type="button" class="btn btn-warning btn-sm" data-open="modalEdit<?= (int)$p['id'] ?>"><?= ic('edit', 'icon icon-sm') ?><span>Ubah</span></button>
         <?= delete_button('hapus', $p['id'], 'Produk "' . $p['nama'] . '" akan dihapus permanen beserta gambarnya.') ?>
       </div>
     </div>
@@ -125,5 +125,5 @@ $form = function ($p = null) use ($kategori) {
 
 <?= modal_open('modalTambah', 'Tambah Produk') . $form() . modal_close() ?>
 <?php foreach ($rows as $p): ?>
-  <?= modal_open('modalEdit' . (int)$p['id'], 'Edit Produk') . $form($p) . modal_close() ?>
+  <?= modal_open('modalEdit' . (int)$p['id'], 'Ubah Produk') . $form($p) . modal_close() ?>
 <?php endforeach; ?>

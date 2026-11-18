@@ -17,14 +17,14 @@ $flash = render_flash();
   <div class="container"><div class="row items-center between gap-32 stack">
     <div class="col gap-24" style="width:560px">
       <span class="badge badge-admin" style="align-self:flex-start"><?= ic('wrench', 'icon icon-sm') ?>Servis Komputer &amp; Laptop Terpercaya</span>
-      <h1 class="display">Professional Komputer &amp; Laptop Repair</h1>
+      <h1 class="display">Servis Komputer &amp; Laptop Profesional</h1>
       <p class="lead">Vasta Komputer adalah penyedia layanan servis komputer yang berkomitmen untuk memberikan solusi teknologi terbaik bagi individu dan bisnis. Dengan pengalaman bertahun-tahun, kami siap membantu kebutuhan perangkat Anda.</p>
       <div class="row gap-12">
-        <a href="#services" class="btn btn-primary btn-lg">Our Services</a>
-        <a href="#contact" class="btn btn-outline-dark btn-lg">Contact Us</a>
+        <a href="#services" class="btn btn-primary btn-lg">Layanan Kami</a>
+        <a href="#contact" class="btn btn-outline-dark btn-lg">Hubungi Kami</a>
       </div>
     </div>
-    <img class="hero-img" src="https://images.unsplash.com/photo-1517430816045-df4b7de11d1d?auto=format&amp;fit=crop&amp;w=1160&amp;q=80" alt="Laptop Repair">
+    <img class="hero-img" src="https://images.unsplash.com/photo-1517430816045-df4b7de11d1d?auto=format&amp;fit=crop&amp;w=1160&amp;q=80" alt="Servis laptop">
   </div></div>
 </section>
 
@@ -65,17 +65,17 @@ $flash = render_flash();
   <div class="container">
     <div class="section-head"><h2 class="h2">Kenapa harus Vasta Komputer?</h2><div class="title-bar"></div></div>
     <div class="row gap-24 stack">
-      <?= $feature('clock', 'Fast Service', 'Sebagian besar perbaikan selesai dalam waktu 24-48 jam dengan pembaruan status waktu nyata.') ?>
+      <?= $feature('clock', 'Servis Cepat', 'Sebagian besar perbaikan selesai dalam waktu 24-48 jam dengan pembaruan status waktu nyata.') ?>
       <?= $feature('shield', 'Garansi', 'Garansi 90 hari untuk semua perbaikan dan suku cadang demi ketenangan pikiran Anda.') ?>
-      <?= $feature('user', 'Experts', 'Teknisi berpengalaman 10+ tahun dalam perbaikan laptop.') ?>
-      <?= $feature('bell', 'Notifications', 'Dapatkan notifikasi setiap perubahan status melalui dashboard pelanggan yang telah terdaftar.') ?>
+      <?= $feature('user', 'Teknisi Ahli', 'Teknisi berpengalaman 10+ tahun dalam perbaikan laptop.') ?>
+      <?= $feature('bell', 'Pantau Status', 'Pantau setiap perubahan status servis melalui dasbor pelanggan.') ?>
     </div>
   </div>
 </section>
 
 <section class="stats">
   <div class="container"><div class="row between text-center stack gap-24">
-    <?php foreach ([[$total_service . '+', 'Laptops Diperbaiki'], [$total_pelanggan . '+', 'Customer Kami'], [$total_produk . '+', 'Products Tersedia'], ['24/7', 'Customer Support']] as $s): ?>
+    <?php foreach ([[$total_service . '+', 'Laptop Diperbaiki'], [$total_pelanggan . '+', 'Pelanggan Kami'], [$total_produk . '+', 'Produk Tersedia'], ['24/7', 'Layanan Pelanggan']] as $s): ?>
     <div class="col gap-8 items-center" style="width:280px"><div class="stat-big"><?= e($s[0]) ?></div><div class="stat-sub"><?= $s[1] ?></div></div>
     <?php endforeach; ?>
   </div></div>
@@ -95,6 +95,6 @@ $flash = render_flash();
         <iframe class="map-frame" src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d7563.950085951548!2d112.634711!3d-7.3357081!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd7fd9d579a9af3%3A0xe4b78879228481a5!2sVasta%20Computer%20Driyorejo!5e1!3m2!1sid!2sid!4v1750265551918!5m2!1sid!2sid" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Lokasi Vasta Computer"></iframe>
       </div>
     </div>
-    <div class="copyright">© <?= date('Y') ?> Vasta Computer. Service — Jual Beli Laptop.</div>
+    <div class="copyright">© <?= date('Y') ?> Vasta Computer. Servis & Jual Beli Laptop.</div>
   </div>
 </footer>

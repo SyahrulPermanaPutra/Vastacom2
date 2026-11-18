@@ -31,46 +31,77 @@ function nav_user_chip($username, $label = null) {
     return '<span class="nav-user"><span class="avatar">' . e(initials($username)) . '</span><span>' . e($label ?? $username) . '</span></span>';
 }
 
+/** Tombol menu (hamburger) untuk layar kecil. */
+function nav_toggle() {
+    return '<button type="button" class="nav-toggle" data-nav-toggle aria-label="Buka menu">' . ic('menu') . '</button>';
+}
+
 /** Navbar area publik & pelanggan (lihat Figma 01–04). */
 function nav_public($page, $me) {
     $link = function ($label, $href, $key) use ($page) {
         return '<a class="nav-link' . ($page === $key ? ' active' : '') . '" href="' . e(url($href)) . '">' . $label . '</a>';
     };
-    $logout = '<a class="nav-link" href="' . e(url('index.php?page=logout')) . '">' . ic('logout', 'icon icon-sm') . '<span>Logout</span></a>';
-    $h = '<header class="navbar">' . brand_html(url()) . '<nav class="nav-links">';
+    $logout = '<a class="nav-link" href="' . e(url('index.php?page=logout')) . '">' . ic('logout', 'icon icon-sm') . '<span>Keluar</span></a>';
+    $h = '<header class="navbar">' . brand_html(url()) . nav_toggle() . '<div class="nav-collapse"><nav class="nav-links">';
     if (!$me) {
-        $h .= $link('Home', '', 'home') . $link('Registrasi', 'index.php?page=register', 'register') . $link('Login', 'index.php?page=login', 'login');
+        $h .= $link('Beranda', '', 'home') . $link('Masuk', 'index.php?page=login', 'login');
     } elseif ($me['role'] === 'pelanggan') {
-        if ($page !== 'dashboard') $h .= $link('Home', '', 'home');
-        $h .= $link('Dashboard', 'index.php?page=dashboard', 'dashboard') . nav_user_chip($me['username'], 'Halo, ' . $me['username'] . '!') . $logout;
+        if ($page !== 'dashboard') $h .= $link('Beranda', '', 'home');
+        $h .= $link('Dasbor', 'index.php?page=dashboard', 'dashboard') . nav_user_chip($me['username'], 'Halo, ' . $me['username'] . '!') . $logout;
     } else {
-        $h .= $link('Home', '', 'home') . '<a class="nav-link" href="' . e(url('admin/index.php')) . '">' . ic('grid', 'icon icon-sm') . '<span>Panel ' . e(ROLE_LABEL[$me['role']]) . '</span></a>'
+        $h .= $link('Beranda', '', 'home') . '<a class="nav-link" href="' . e(url('admin/index.php')) . '">' . ic('grid', 'icon icon-sm') . '<span>Panel ' . e(ROLE_LABEL[$me['role']]) . '</span></a>'
             . nav_user_chip($me['username']) . $logout;
     }
-    return $h . '</nav></header>';
+    return $h . '</nav></div></header>';
 }
 
-/** Navbar panel admin/teknisi (lihat Figma 07–21). Menu menyesuaikan role. */
+/** Navbar panel admin/teknisi dengan submenu. Menu menyesuaikan role. */
 function nav_panel($page, $me) {
-    $items = [
-        'dashboard' => ['Dashboard', 'grid', ['admin', 'teknisi']],
-        'produk'    => ['Produk', 'package', ['admin']],
-        'kategori'  => ['Kategori Produk', 'tag', ['admin']],
-        'users'     => ['Users', 'user', ['admin']],
-        'pelanggan' => ['Pelanggan', 'users', ['admin']],
-        'service'   => ['Service', 'wrench', ['admin', 'teknisi']],
-        'invoice'   => ['Invoice', 'receipt', ['admin']],
+    // [label, ikon, role, submenu] — submenu: key => [label, ikon, role]
+    $menu = [
+        'dashboard' => ['Dasbor', 'grid', ['admin', 'teknisi']],
+        'master'    => ['Master Data', 'package', ['admin'], [
+            'kategori' => ['Kategori Produk', 'tag', ['admin']],
+            'produk'   => ['Produk', 'package', ['admin']],
+        ]],
+        'pengguna'  => ['Pengguna', 'users', ['admin']],
+        'transaksi' => ['Transaksi', 'receipt', ['admin', 'teknisi'], [
+            'service' => ['Servis', 'wrench', ['admin', 'teknisi']],
+            'invoice' => ['Invoice', 'receipt', ['admin']],
+        ]],
     ];
-    $h = '<header class="navbar navbar-admin">' . brand_html(url('admin/index.php')) . '<nav class="nav-links">';
-    foreach ($items as $key => [$label, $icon, $roles]) {
-        if (!in_array($me['role'], $roles, true)) continue;
-        $h .= '<a class="nav-link' . ($page === $key ? ' active' : '') . '" href="' . e(url('admin/index.php?page=' . $key)) . '">' . ic($icon, 'icon icon-sm') . '<span>' . $label . '</span></a>';
+    $allowed = function ($roles) use ($me) { return in_array($me['role'], $roles, true); };
+    $link = function ($key, $label, $icon, $class = 'nav-link') use ($page) {
+        return '<a class="' . $class . ($page === $key ? ' active' : '') . '" href="' . e(url('admin/index.php?page=' . $key)) . '">' . ic($icon, 'icon icon-sm') . '<span>' . $label . '</span></a>';
+    };
+
+    $h = '<header class="navbar navbar-admin">' . brand_html(url('admin/index.php')) . nav_toggle() . '<div class="nav-collapse"><nav class="nav-links">';
+    foreach ($menu as $key => $item) {
+        [$label, $icon, $roles] = $item;
+        if (!$allowed($roles)) continue;
+        if (empty($item[3])) {
+            $h .= $link($key, $label, $icon);
+            continue;
+        }
+        $subs = array_filter($item[3], function ($s) use ($allowed) { return $allowed($s[2]); });
+        if (count($subs) === 1) {           // hanya satu submenu (mis. teknisi) → tampil sebagai tautan biasa
+            $sk = array_key_first($subs);
+            $h .= $link($sk, $subs[$sk][0], $subs[$sk][1]);
+            continue;
+        }
+        $active = isset($subs[$page]);
+        $h .= '<div class="nav-group"><button type="button" class="nav-link' . ($active ? ' active' : '') . '" data-dropdown aria-haspopup="true">'
+            . ic($icon, 'icon icon-sm') . '<span>' . $label . '</span>' . ic('down', 'icon icon-sm nav-caret') . '</button><div class="nav-menu">';
+        foreach ($subs as $sk => [$sl, $si]) {
+            $h .= $link($sk, $sl, $si, 'nav-menu-item');
+        }
+        $h .= '</div></div>';
     }
-    $h .= '</nav><div class="row items-center gap-8">'
-        . '<a class="nav-link" href="' . e(url()) . '" title="Lihat website">' . ic('laptop', 'icon icon-sm') . '<span>Website</span></a>'
+    $h .= '</nav><div class="nav-right">'
+        . '<a class="nav-link" href="' . e(url()) . '" title="Lihat situs">' . ic('laptop', 'icon icon-sm') . '<span>Lihat Situs</span></a>'
         . nav_user_chip($me['username'])
         . '<a class="nav-link" href="' . e(url('index.php?page=logout')) . '">' . ic('logout', 'icon icon-sm') . '<span>Keluar</span></a></div>';
-    return $h . '</header>';
+    return $h . '</div></header>';
 }
 
 function page_head($title, $sub, $actions = '') {

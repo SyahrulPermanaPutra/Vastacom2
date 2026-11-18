@@ -1,7 +1,7 @@
 /* =========================================================
    Vasta Computer — penyesuaian web untuk design.css
    design.css = design system yang sama dengan file Figma
-   (figma-design/). File ini hanya menambahkan perilaku web:
+   proyek. File ini hanya menambahkan perilaku web:
    lebar responsif, elemen form asli, modal, hover, dll.
    ========================================================= */
 
@@ -23,8 +23,26 @@ button { font-family: inherit; }
 /* ---------- Interaksi ---------- */
 .brand, .nav-link, .nav-user { white-space: nowrap; }
 .navbar-admin .nav-link { padding: 8px 10px; }
-.nav-link { cursor: pointer; transition: background .15s, color .15s; }
+.nav-link { cursor: pointer; transition: background .15s, color .15s; background: none; border: none; font-family: inherit; }
 .nav-link:hover { background: rgba(255, 255, 255, .7); color: var(--primary); }
+
+/* ---------- Navbar: submenu & menu mobile ---------- */
+.nav-collapse { display: flex; align-items: center; justify-content: flex-end; gap: 16px; flex: 1; }
+.navbar-admin .nav-collapse { justify-content: space-between; margin-left: 16px; }
+.nav-right { display: flex; align-items: center; gap: 8px; }
+.nav-toggle { display: none; width: 40px; height: 40px; border-radius: 8px; border: 1px solid #cfe5f8; background: #fff; color: var(--dark); align-items: center; justify-content: center; cursor: pointer; }
+.nav-group { position: relative; }
+.nav-caret { transition: transform .15s; }
+.nav-group.open .nav-caret { transform: rotate(180deg); }
+.nav-menu {
+  display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 60; min-width: 210px;
+  flex-direction: column; gap: 2px; padding: 6px; background: #fff; border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 10px 25px rgba(15, 23, 42, .12);
+}
+.nav-group.open .nav-menu { display: flex; }
+.nav-menu-item { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; color: #334155; white-space: nowrap; }
+.nav-menu-item:hover, .nav-menu-item.active { background: var(--primary-soft); color: var(--primary); }
+.card-active { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(13, 110, 253, .12); }
 .btn { cursor: pointer; transition: filter .15s, background .15s; font-family: inherit; }
 .btn:hover { filter: brightness(.94); }
 .btn-outline-primary:hover { background: var(--primary-soft); filter: none; }
@@ -97,24 +115,70 @@ body.modal-open { overflow: hidden; }
 .product-card { width: calc((100% - 72px) / 4); }
 .product-photo { width: 100%; height: 200px; object-fit: contain; padding: 16px; background: #f8fafc; display: block; }
 .map-frame { width: 588px; max-width: 100%; height: 330px; border: 0; border-radius: 12px; }
+.auth-card { max-width: calc(100% - 32px); }
 .footer a:hover { text-decoration: underline; }
 
 /* ---------- Responsif ---------- */
-@media (max-width: 1180px) {
-  .navbar-admin { height: auto; padding-top: 10px; padding-bottom: 10px; flex-wrap: wrap; }
-  .navbar-admin .nav-links { flex-wrap: wrap; order: 3; width: 100%; }
+@media (max-width: 1100px) {
+  /* Navbar menjadi menu lipat (hamburger) */
+  .navbar, .navbar-admin { height: auto; min-height: 64px; flex-wrap: wrap; padding-top: 12px; padding-bottom: 12px; }
+  .nav-toggle { display: flex; }
+  .nav-collapse { display: none; width: 100%; flex-basis: 100%; flex-direction: column; align-items: stretch; gap: 8px; margin: 4px 0 0; }
+  .navbar.open .nav-collapse { display: flex; }
+  .nav-links, .nav-right { flex-direction: column; align-items: stretch; gap: 2px; }
+  .nav-right { border-top: 1px solid #cfe5f8; padding-top: 8px; }
+  .nav-link, .navbar-admin .nav-link { width: 100%; padding: 10px 12px; }
+  .nav-user { align-self: flex-start; margin: 4px 0; }
+  .nav-menu { position: static; box-shadow: none; border: none; background: transparent; padding: 0 0 0 26px; min-width: 0; }
+  .nav-caret { margin-left: auto; }
 }
 @media (max-width: 960px) {
   .stack { flex-direction: column !important; align-items: stretch !important; }
   .stack > * { width: 100% !important; max-width: 100% !important; }
   .product-card { width: calc((100% - 24px) / 2); }
-  .display { font-size: 36px; line-height: 44px; }
-  .navbar { height: auto; padding-top: 10px; padding-bottom: 10px; flex-wrap: wrap; }
-  .page-head, .toolbar { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .toolbar > * { width: 100%; }
+  .display { font-size: 34px; line-height: 42px; }
+  .section { padding: 56px 0; }
+  .hero { padding: 40px 0 56px; }
+  .admin-content { padding: 24px 16px 40px; gap: 18px; }
+  .container { padding: 0 16px; }
+  .h1 { font-size: 26px; line-height: 34px; }
+  .page-head { flex-direction: column; align-items: stretch; gap: 12px; }
+  .page-head > .row { flex-wrap: wrap; }
+  .toolbar, .card-body.toolbar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .toolbar > *, .toolbar .row { width: 100%; }
+  .toolbar .row { flex-wrap: wrap; }
+  .toolbar select.input-sm { flex: 1; min-width: 140px; }
   .input-group[style] { width: 100% !important; }
+  .pagination { flex-wrap: wrap; }
+  .stat-value { font-size: 24px; }
+  .modal-lg { width: 100%; }
+  .card-grid { flex-wrap: wrap; }
+  .card-grid > * { flex: 1 1 calc(50% - 10px) !important; min-width: 0; }
+}
+@media (max-width: 640px) {
+  /* Tabel menjadi kartu bertumpuk: label kolom diambil dari data-label (diisi app.js) */
+  .table-wrap .table, .table[style] { min-width: 0 !important; }
+  .table .thead { display: none; }
+  .table .tr { flex-direction: column; align-items: stretch; gap: 8px; padding: 14px 16px; min-height: 0; }
+  .table .td { width: auto !important; flex: none !important; padding: 0; min-height: 0; justify-content: space-between; text-align: right; flex-wrap: wrap; }
+  .table .td[data-label]::before { content: attr(data-label); margin-right: auto; padding-right: 12px; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; text-align: left; }
+  .table .td .clamp { text-align: right; }
 }
 @media (max-width: 560px) {
   .product-card { width: 100%; }
   .field-row { flex-direction: column; }
+  .overlay { padding: 16px 10px; }
+  .modal-header, .modal-body, .modal-footer { padding-left: 16px; padding-right: 16px; }
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; }
+  .kv-key { width: 120px; }
+  .auth-card { padding: 24px; }
+  .brand { font-size: 18px; }
+  .card-grid { gap: 10px !important; }
+  .card-grid > * { flex-basis: calc(50% - 5px) !important; }
+  .card-grid .card-body { padding: 14px; gap: 10px; flex-direction: column !important; align-items: flex-start !important; }
+  .card-grid .stat-icon { width: 36px; height: 36px; border-radius: 10px; }
+  .card-grid .h2 { font-size: 20px; line-height: 26px; }
+  .card-grid .stat-card { padding: 16px; gap: 10px; }
+  .card-grid .stat-value { font-size: 20px; }
 }

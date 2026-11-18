@@ -54,7 +54,7 @@ $form = function ($k = null) {
       <div class="td semibold" style="flex:1"><?= e($k['nama']) ?></div>
       <div class="td" style="width:200px"><?= (int)$k['jumlah'] ?> produk</div>
       <div class="td" style="width:200px">
-        <button type="button" class="btn btn-warning btn-sm" data-open="modalEdit<?= (int)$k['id'] ?>"><?= ic('edit', 'icon icon-sm') ?><span>Edit</span></button>
+        <button type="button" class="btn btn-warning btn-sm" data-open="modalEdit<?= (int)$k['id'] ?>"><?= ic('edit', 'icon icon-sm') ?><span>Ubah</span></button>
         <?= delete_button('hapus', $k['id'], 'Kategori "' . $k['nama'] . '" akan dihapus.') ?>
       </div>
     </div>
@@ -65,5 +65,5 @@ $form = function ($k = null) {
 
 <?= modal_open('modalTambah', 'Tambah Kategori Produk') . $form() . modal_close() ?>
 <?php foreach ($rows as $k): ?>
-  <?= modal_open('modalEdit' . (int)$k['id'], 'Edit Kategori Produk') . $form($k) . modal_close() ?>
+  <?= modal_open('modalEdit' . (int)$k['id'], 'Ubah Kategori Produk') . $form($k) . modal_close() ?>
 <?php endforeach; ?>
